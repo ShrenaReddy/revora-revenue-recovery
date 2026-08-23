@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "./App.css";
 import Transactions from "./Transactions";
 import Recovery from "./Recovery";
+import Analytics from "./Analytics";
 
 function App() {
   const [metrics, setMetrics] = useState(null);
@@ -192,8 +193,9 @@ function App() {
   <Transactions />
 ) : activePage === "recovery" ? (
   <Recovery />
-
-        ) : (
+) : activePage === "analytics" ? (
+    <Analytics />
+      ) : (
 
           /* ============================= */
           /* OVERVIEW PAGE                 */
