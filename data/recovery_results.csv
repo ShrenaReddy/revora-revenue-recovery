@@ -192,7 +192,7 @@ TX10190,35260.74,SUCCESS,NONE,47.2,MEDIUM,STOP,Payment already succeeded; no rec
 TX10191,28781.29,FAILED,CARD_EXPIRED,53,MEDIUM,REMIND,MEDIUM recovery potential; customer should be reminded to complete payment.,0.45,FAILED,0
 TX10192,24235.54,SUCCESS,NONE,58.6,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10193,39618.07,SUCCESS,NONE,54.8,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
-TX10194,1834.16,FAILED,NETWORK_ERROR,83,HIGH,RETRY,HIGH recovery potential and network error is suitable for retry.,0.95,RECOVERED,1834.16
+TX10194,1834.16,FAILED,NETWORK_ERROR,83.0,HIGH,RETRY,"HIGH recovery potential because of strong historical payment success rate (95%), only one recovery attempt has been made, and a recoverable network error failure. the customer is not classified as returning. transaction value is ₹1,834.16. These factors support another payment retry.",0.95,RECOVERED,1834.16
 TX10195,1580.28,FAILED,UNKNOWN,48.4,MEDIUM,ESCALATE,Failure reason is uncertain and requires further investigation.,0.65,ESCALATED,0
 TX10196,33825.07,SUCCESS,NONE,65.2,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10197,30746.89,SUCCESS,NONE,68.4,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
@@ -1353,7 +1353,7 @@ TX11351,6843.11,FAILED,NETWORK_ERROR,43.8,MEDIUM,RETRY,MEDIUM recovery potential
 TX11352,15948.29,SUCCESS,NONE,50,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX11353,15510.12,SUCCESS,NONE,77.4,HIGH,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX11354,15273.17,SUCCESS,NONE,45,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
-TX11355,7427.99,FAILED,NETWORK_ERROR,73.8,HIGH,RETRY,HIGH recovery potential and network error is suitable for retry.,0.95,RECOVERED,7427.99
+TX11355,7427.99,FAILED,NETWORK_ERROR,73.8,HIGH,RETRY,"HIGH recovery potential because of strong historical payment success rate (97%), two recovery attempts have already been made, and a recoverable network error failure. the customer is a returning customer. transaction value is ₹7,427.99. These factors support another payment retry.",0.95,RECOVERED,7427.99
 TX11356,5066.3,SUCCESS,NONE,42,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX11357,40619.24,SUCCESS,NONE,72.2,HIGH,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX11358,35998.11,SUCCESS,NONE,44.2,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
