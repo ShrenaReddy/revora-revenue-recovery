@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 import csv
 import os
 
@@ -8,6 +9,7 @@ from metrics import calculate_metrics
 
 
 app = Flask(__name__)
+CORS(app)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
