@@ -97,6 +97,7 @@ def simulate_recovery(transaction, action, score):
         action
     )
 
+    # Stopping rule blocked the action
     if not allowed:
         return {
             "recovery_probability": probability,
@@ -117,7 +118,9 @@ def simulate_recovery(transaction, action, score):
             "attempts_before": attempts_before,
             "attempts_after": attempts_before,
             "action_executed": True,
-            "stopping_rule": "Manual review required before further recovery."
+            "stopping_rule": (
+                "Manual review required before further recovery."
+            )
         }
 
     # REMIND does not count as a payment retry
@@ -129,7 +132,9 @@ def simulate_recovery(transaction, action, score):
             "attempts_before": attempts_before,
             "attempts_after": attempts_before,
             "action_executed": True,
-            "stopping_rule": "Reminder sent; no additional payment attempt made."
+            "stopping_rule": (
+                "Reminder sent; no additional payment attempt made."
+            )
         }
 
     # RETRY counts as a recovery attempt
@@ -137,6 +142,7 @@ def simulate_recovery(transaction, action, score):
 
     random_value = random.random()
 
+    # Recovery successful
     if random_value <= probability:
         return {
             "recovery_probability": probability,
@@ -145,20 +151,26 @@ def simulate_recovery(transaction, action, score):
             "attempts_before": attempts_before,
             "attempts_after": attempts_after,
             "action_executed": True,
-            "stopping_rule": "Recovery succeeded; further attempts stopped."
+            "stopping_rule": (
+                "Recovery succeeded; further attempts stopped."
+            )
         }
 
     # Retry failed
     if attempts_after >= MAX_RECOVERY_ATTEMPTS:
         next_status = "STOPPED"
+
         rule = (
             f"Maximum recovery attempts ({MAX_RECOVERY_ATTEMPTS}) "
             "reached after failed retry."
         )
+
     else:
         next_status = "FAILED"
+
         rule = (
-            f"Retry failed. {MAX_RECOVERY_ATTEMPTS - attempts_after} "
+            f"Retry failed. "
+            f"{MAX_RECOVERY_ATTEMPTS - attempts_after} "
             "attempt(s) remaining."
         )
 

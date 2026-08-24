@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import csv
 import os
+from datetime import datetime
 
 from decision_engine import analyze_transaction
 from recovery_simulator import simulate_recovery
@@ -10,6 +11,11 @@ from metrics import calculate_metrics
 
 app = Flask(__name__)
 CORS(app)
+
+
+# ==========================================
+# FILE PATHS
+# ==========================================
 
 BASE_DIR = os.path.dirname(
     os.path.dirname(
@@ -29,20 +35,36 @@ RESULTS_FILE = os.path.join(
     "recovery_results.csv"
 )
 
+AUDIT_FILE = os.path.join(
+    BASE_DIR,
+    "data",
+    "recovery_audit.csv"
+)
+
+
+# ==========================================
+# CSV HELPERS
+# ==========================================
 
 def load_csv(file_path):
+
+    if not os.path.exists(file_path):
+        return []
+
     with open(
         file_path,
         "r",
         newline="",
         encoding="utf-8"
     ) as file:
+
         return list(
             csv.DictReader(file)
         )
 
 
 def convert_transaction(transaction):
+
     transaction = transaction.copy()
 
     transaction["amount"] = float(
@@ -65,21 +87,178 @@ def convert_transaction(transaction):
 
 
 # ==========================================
-# Home
+# AUDIT TRAIL
+# ==========================================
+
+def write_audit_log(
+    transaction,
+    decision,
+    recovery
+):
+
+    audit_record = {
+        "audit_timestamp":
+            datetime.now().isoformat(
+                timespec="seconds"
+            ),
+
+        "transaction_id":
+            transaction.get(
+                "transaction_id",
+                ""
+            ),
+
+        "customer_id":
+            transaction.get(
+                "customer_id",
+                ""
+            ),
+
+        "amount":
+            transaction.get(
+                "amount",
+                0
+            ),
+
+        "failure_reason":
+            transaction.get(
+                "failure_reason",
+                ""
+            ),
+
+        "recovery_score":
+            decision.get(
+                "recovery_score",
+                ""
+            ),
+
+        "risk_level":
+            decision.get(
+                "risk_level",
+                ""
+            ),
+
+        "recommended_action":
+            decision.get(
+                "recommended_action",
+                ""
+            ),
+
+        "recovery_status":
+            recovery.get(
+                "recovery_status",
+                ""
+            ),
+
+        "recovery_probability":
+            recovery.get(
+                "recovery_probability",
+                ""
+            ),
+
+        "recovered_amount":
+            recovery.get(
+                "recovered_amount",
+                0
+            ),
+
+        "attempts_before":
+            recovery.get(
+                "attempts_before",
+                ""
+            ),
+
+        "attempts_after":
+            recovery.get(
+                "attempts_after",
+                ""
+            ),
+
+        "action_executed":
+            recovery.get(
+                "action_executed",
+                False
+            ),
+
+        "stopping_rule":
+            recovery.get(
+                "stopping_rule",
+                ""
+            ),
+
+        "decision_reason":
+            decision.get(
+                "decision_reason",
+                ""
+            )
+    }
+
+    fieldnames = [
+        "audit_timestamp",
+        "transaction_id",
+        "customer_id",
+        "amount",
+        "failure_reason",
+        "recovery_score",
+        "risk_level",
+        "recommended_action",
+        "recovery_status",
+        "recovery_probability",
+        "recovered_amount",
+        "attempts_before",
+        "attempts_after",
+        "action_executed",
+        "stopping_rule",
+        "decision_reason"
+    ]
+
+    file_exists = os.path.exists(
+        AUDIT_FILE
+    )
+
+    with open(
+        AUDIT_FILE,
+        "a",
+        newline="",
+        encoding="utf-8"
+    ) as file:
+
+        writer = csv.DictWriter(
+            file,
+            fieldnames=fieldnames,
+            extrasaction="ignore"
+        )
+
+        if not file_exists:
+            writer.writeheader()
+
+        writer.writerow(
+            audit_record
+        )
+
+
+# ==========================================
+# HOME
 # ==========================================
 
 @app.route("/")
 def home():
 
     return jsonify({
-        "application": "Revora",
-        "message": "AI Revenue Recovery API is running",
-        "status": "online"
+
+        "application":
+            "Revora",
+
+        "message":
+            "AI Revenue Recovery API is running",
+
+        "status":
+            "online"
     })
 
 
 # ==========================================
-# Get all transactions
+# GET ALL TRANSACTIONS
 # ==========================================
 
 @app.route(
@@ -93,13 +272,17 @@ def get_transactions():
     )
 
     return jsonify({
-        "count": len(transactions),
-        "transactions": transactions
+
+        "count":
+            len(transactions),
+
+        "transactions":
+            transactions
     })
 
 
 # ==========================================
-# Get recovery results
+# GET RECOVERY RESULTS
 # ==========================================
 
 @app.route(
@@ -116,10 +299,9 @@ def get_results():
         RESULTS_FILE
     )
 
-    # Create lookup for existing
-    # recovery simulation results
     recovery_lookup = {
-        result["transaction_id"]: result
+        result["transaction_id"]:
+            result
         for result in recovery_results
     }
 
@@ -131,7 +313,6 @@ def get_results():
             transaction
         )
 
-        # Generate the latest AI decision
         decision = analyze_transaction(
             transaction
         )
@@ -140,8 +321,6 @@ def get_results():
             "transaction_id"
         ]
 
-        # Get previously simulated recovery
-        # information if available
         recovery = recovery_lookup.get(
             transaction_id,
             {}
@@ -152,8 +331,8 @@ def get_results():
             **recovery
         }
 
-        # Make sure original transaction
-        # information is preserved
+        # Preserve original transaction information
+
         result["transaction_id"] = (
             transaction["transaction_id"]
         )
@@ -205,13 +384,17 @@ def get_results():
         results.append(result)
 
     return jsonify({
-        "count": len(results),
-        "results": results
+
+        "count":
+            len(results),
+
+        "results":
+            results
     })
 
 
 # ==========================================
-# Get metrics
+# GET METRICS
 # ==========================================
 
 @app.route(
@@ -231,7 +414,10 @@ def get_metrics():
         )
 
         result["recovered_amount"] = float(
-            result["recovered_amount"]
+            result.get(
+                "recovered_amount",
+                0
+            )
         )
 
     metrics = calculate_metrics(
@@ -242,55 +428,124 @@ def get_metrics():
 
 
 # ==========================================
-# Analyze a single transaction
+# GET AUDIT TRAIL
 # ==========================================
 
-@app.route("/api/analyze", methods=["POST"])
+@app.route(
+    "/api/audit",
+    methods=["GET"]
+)
+def get_audit():
+
+    audit_records = load_csv(
+        AUDIT_FILE
+    )
+
+    return jsonify({
+
+        "count":
+            len(audit_records),
+
+        "audit":
+            audit_records
+    })
+
+
+# ==========================================
+# ANALYZE TRANSACTION
+# ==========================================
+
+@app.route(
+    "/api/analyze",
+    methods=["POST"]
+)
 def analyze():
-    # Your existing analyze logic is here
-    # Keep all of this unchanged
-    pass
-
-
-# Execute a recovery action
-# ==========================================
-# Execute a recovery action
-# ==========================================
-
-@app.route("/api/execute-recovery", methods=["POST"])
-def execute_recovery():
 
     transaction = request.get_json()
 
     if not transaction:
+
         return jsonify({
-            "error": "Transaction data is required"
+
+            "error":
+                "Transaction data is required"
+
         }), 400
 
     try:
-
-        # ------------------------------------------
-        # Convert transaction data
-        # ------------------------------------------
 
         transaction = convert_transaction(
             transaction
         )
 
-        # ------------------------------------------
-        # Run AI decision engine
-        # ------------------------------------------
+        decision = analyze_transaction(
+            transaction
+        )
+
+        return jsonify(
+            decision
+        )
+
+    except Exception as error:
+
+        return jsonify({
+
+            "error":
+                str(error)
+
+        }), 500
+
+
+# ==========================================
+# EXECUTE RECOVERY
+# ==========================================
+
+@app.route(
+    "/api/execute-recovery",
+    methods=["POST"]
+)
+def execute_recovery():
+
+    transaction = request.get_json()
+
+    if not transaction:
+
+        return jsonify({
+
+            "error":
+                "Transaction data is required"
+
+        }), 400
+
+    try:
+
+        # ----------------------------------
+        # Convert transaction
+        # ----------------------------------
+
+        transaction = convert_transaction(
+            transaction
+        )
+
+        # ----------------------------------
+        # AI DECISION
+        # ----------------------------------
 
         decision = analyze_transaction(
             transaction
         )
 
-        action = decision["recommended_action"]
-        score = decision["recovery_score"]
+        action = decision[
+            "recommended_action"
+        ]
 
-        # ------------------------------------------
-        # Execute bounded recovery workflow
-        # ------------------------------------------
+        score = decision[
+            "recovery_score"
+        ]
+
+        # ----------------------------------
+        # EXECUTE BOUNDED RECOVERY
+        # ----------------------------------
 
         recovery = simulate_recovery(
             transaction,
@@ -298,18 +553,18 @@ def execute_recovery():
             score
         )
 
-        # ------------------------------------------
-        # Combine AI decision + recovery result
-        # ------------------------------------------
+        # ----------------------------------
+        # COMBINE RESULT
+        # ----------------------------------
 
         result = {
             **decision,
             **recovery
         }
 
-        # ------------------------------------------
-        # Persist recovery result
-        # ------------------------------------------
+        # ----------------------------------
+        # PERSIST RECOVERY RESULT
+        # ----------------------------------
 
         recovery_results = load_csv(
             RESULTS_FILE
@@ -319,33 +574,24 @@ def execute_recovery():
             "transaction_id"
         ]
 
-        # Check whether this transaction
-        # already exists in recovery results
         existing_index = None
 
         for index, row in enumerate(
             recovery_results
         ):
+
             if row.get(
                 "transaction_id"
             ) == transaction_id:
+
                 existing_index = index
                 break
-
-        # ------------------------------------------
-        # Build persistent recovery record
-        # ------------------------------------------
 
         persistent_result = {
             **transaction,
             **decision,
             **recovery
         }
-
-        # ------------------------------------------
-        # Update existing record
-        # or add a new record
-        # ------------------------------------------
 
         if existing_index is not None:
 
@@ -359,9 +605,9 @@ def execute_recovery():
                 persistent_result
             )
 
-        # ------------------------------------------
-        # Write updated results to CSV
-        # ------------------------------------------
+        # ----------------------------------
+        # WRITE RECOVERY RESULTS
+        # ----------------------------------
 
         if recovery_results:
 
@@ -388,11 +634,23 @@ def execute_recovery():
                     recovery_results
                 )
 
-        # ------------------------------------------
-        # Return result to frontend
-        # ------------------------------------------
+        # ----------------------------------
+        # WRITE ONE AUDIT EVENT
+        # ----------------------------------
 
-        return jsonify(result)
+        write_audit_log(
+            transaction,
+            decision,
+            recovery
+        )
+
+        # ----------------------------------
+        # RETURN RESULT
+        # ----------------------------------
+
+        return jsonify(
+            result
+        )
 
     except Exception as error:
 
@@ -402,11 +660,15 @@ def execute_recovery():
         )
 
         return jsonify({
-            "error": str(error)
+
+            "error":
+                str(error)
+
         }), 500
 
+
 # ==========================================
-# Run server
+# RUN SERVER
 # ==========================================
 
 if __name__ == "__main__":

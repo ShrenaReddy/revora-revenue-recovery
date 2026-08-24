@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 function Recovery() {
   const [transactions, setTransactions] = useState([]);
+const [auditRecords, setAuditRecords] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [actionFilter, setActionFilter] = useState("ALL");
@@ -14,6 +15,9 @@ function Recovery() {
   const [currentPage, setCurrentPage] = useState(1);
   const opportunitiesPerPage = 100;
 
+  /*
+   * Load recovery data
+   */
   useEffect(() => {
     async function loadRecoveryData() {
       try {
@@ -29,7 +33,10 @@ function Recovery() {
 
         setTransactions(data.results || []);
       } catch (error) {
-        console.error("Failed to load recovery data:", error);
+        console.error(
+          "Failed to load recovery data:",
+          error
+        );
       } finally {
         setLoading(false);
       }
@@ -47,7 +54,8 @@ function Recovery() {
   const recoveryTransactions = useMemo(() => {
     return transactions
       .filter((transaction) => {
-        const action = transaction.recommended_action;
+        const action =
+          transaction.recommended_action;
 
         return (
           action === "RETRY" ||
@@ -68,16 +76,28 @@ function Recovery() {
 
         const matchesAction =
           actionFilter === "ALL" ||
-          transaction.recommended_action === actionFilter;
+          transaction.recommended_action ===
+            actionFilter;
 
-        return matchesSearch && matchesAction;
+        return (
+          matchesSearch &&
+          matchesAction
+        );
       })
       .sort(
         (a, b) =>
-          Number(b.recovery_probability || 0) -
-          Number(a.recovery_probability || 0)
+          Number(
+            b.recovery_probability || 0
+          ) -
+          Number(
+            a.recovery_probability || 0
+          )
       );
-  }, [transactions, actionFilter, search]);
+  }, [
+    transactions,
+    actionFilter,
+    search
+  ]);
 
   /*
    * Reset pagination whenever
@@ -92,31 +112,37 @@ function Recovery() {
    */
   const retryCount = transactions.filter(
     (transaction) =>
-      transaction.recommended_action === "RETRY"
+      transaction.recommended_action ===
+      "RETRY"
   ).length;
 
   const stopCount = transactions.filter(
     (transaction) =>
-      transaction.recommended_action === "STOP"
+      transaction.recommended_action ===
+      "STOP"
   ).length;
 
   const escalateCount = transactions.filter(
     (transaction) =>
-      transaction.recommended_action === "ESCALATE"
+      transaction.recommended_action ===
+      "ESCALATE"
   ).length;
 
   /*
    * Pagination calculations
    */
   const totalPages = Math.ceil(
-    recoveryTransactions.length / opportunitiesPerPage
+    recoveryTransactions.length /
+      opportunitiesPerPage
   );
 
   const startIndex =
-    (currentPage - 1) * opportunitiesPerPage;
+    (currentPage - 1) *
+    opportunitiesPerPage;
 
   const endIndex =
-    startIndex + opportunitiesPerPage;
+    startIndex +
+    opportunitiesPerPage;
 
   const currentRecoveryTransactions =
     recoveryTransactions.slice(
@@ -128,65 +154,73 @@ function Recovery() {
    * Page navigation
    */
   const goToPage = (page) => {
-    if (page >= 1 && page <= totalPages) {
+    if (
+      page >= 1 &&
+      page <= totalPages
+    ) {
       setCurrentPage(page);
     }
   };
 
   /*
-   * Execute a recovery action.
-   *
-   * Currently this is a frontend demo action.
+   * Execute a recovery action
    */
- const executeAction = async (transaction) => {
-  try {
-    setNotification(
-      `Executing ${transaction.recommended_action} for ${transaction.transaction_id}...`
-    );
+  const executeAction = async (
+    transaction
+  ) => {
+    try {
+      setNotification(
+        `Executing ${transaction.recommended_action} for ${transaction.transaction_id}...`
+      );
 
-    const response = await fetch(
-      "http://127.0.0.1:5000/api/execute-recovery",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(transaction),
+      const response = await fetch(
+        "http://127.0.0.1:5000/api/execute-recovery",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify(transaction),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Recovery execution failed"
+        );
       }
-    );
 
-    if (!response.ok) {
-      throw new Error("Recovery execution failed");
+      const result =
+        await response.json();
+
+      setActionedTransactions(
+        (previous) => ({
+          ...previous,
+          [transaction.transaction_id]:
+            result,
+        })
+      );
+
+      setNotification(
+        `${result.recovery_status} — ${transaction.transaction_id}`
+      );
+
+      setTimeout(() => {
+        setNotification("");
+      }, 4000);
+
+    } catch (error) {
+      console.error(
+        "Recovery execution failed:",
+        error
+      );
+
+      setNotification(
+        "Recovery execution failed. Please try again."
+      );
     }
-
-    const result = await response.json();
-
-    setActionedTransactions((previous) => ({
-      ...previous,
-      [transaction.transaction_id]: result,
-    }));
-
-    setNotification(
-      `${result.recovery_status} — ${transaction.transaction_id}`
-    );
-
-    setTimeout(() => {
-      setNotification("");
-    }, 4000);
-
-  } catch (error) {
-
-    console.error(
-      "Recovery execution failed:",
-      error
-    );
-
-    setNotification(
-      "Recovery execution failed. Please try again."
-    );
-
-  }
-};
+  };
 
   /*
    * Recovery rate
@@ -196,23 +230,31 @@ function Recovery() {
       ? (
           transactions.filter(
             (transaction) =>
-              transaction.recovery_status === "RECOVERED"
+              transaction.recovery_status ===
+              "RECOVERED"
           ).length /
           Math.max(
             transactions.filter(
               (transaction) =>
-                transaction.status === "FAILED"
+                transaction.status ===
+                "FAILED"
             ).length,
             1
           )
         ) * 100
       : 0;
 
+  /*
+   * Loading
+   */
   if (loading) {
     return (
       <div className="loading">
         <h2>REVORA</h2>
-        <p>Loading recovery intelligence...</p>
+
+        <p>
+          Loading recovery intelligence...
+        </p>
       </div>
     );
   }
@@ -221,12 +263,13 @@ function Recovery() {
     <div className="recovery-page">
 
       {/* ============================= */}
-      {/* Header                        */}
+      {/* HEADER                        */}
       {/* ============================= */}
 
       <header className="topbar">
 
         <div>
+
           <p className="eyebrow">
             AI REVENUE RECOVERY
           </p>
@@ -236,13 +279,19 @@ function Recovery() {
           </h1>
 
           <p className="subtitle">
-            AI-powered decisions for recovering failed payment revenue.
+            AI-powered decisions for
+            recovering failed payment
+            revenue.
           </p>
+
         </div>
 
         <div className="live-badge">
+
           <span></span>
+
           AI ENGINE ACTIVE
+
         </div>
 
       </header>
@@ -254,11 +303,20 @@ function Recovery() {
 
       <section className="metrics-grid">
 
+        {/* Recoverable Revenue */}
+
         <div className="metric-card">
 
           <div className="metric-top">
-            <p>Recoverable Revenue</p>
-            <div className="metric-icon">₹</div>
+
+            <p>
+              Recoverable Revenue
+            </p>
+
+            <div className="metric-icon">
+              ₹
+            </div>
+
           </div>
 
           <h2>
@@ -273,7 +331,10 @@ function Recovery() {
                 .reduce(
                   (sum, transaction) =>
                     sum +
-                    Number(transaction.amount || 0),
+                    Number(
+                      transaction.amount ||
+                        0
+                    ),
                   0
                 ) / 10000000
             ).toFixed(2)}
@@ -281,17 +342,27 @@ function Recovery() {
           </h2>
 
           <span>
-            Revenue identified for recovery
+            Revenue identified for
+            recovery
           </span>
 
         </div>
 
 
+        {/* Recovered Revenue */}
+
         <div className="metric-card featured">
 
           <div className="metric-top">
-            <p>Recovered Revenue</p>
-            <div className="metric-icon">✓</div>
+
+            <p>
+              Recovered Revenue
+            </p>
+
+            <div className="metric-icon">
+              ✓
+            </div>
+
           </div>
 
           <h2>
@@ -306,7 +377,10 @@ function Recovery() {
                 .reduce(
                   (sum, transaction) =>
                     sum +
-                    Number(transaction.amount || 0),
+                    Number(
+                      transaction.amount ||
+                        0
+                    ),
                   0
                 ) / 10000000
             ).toFixed(2)}
@@ -320,11 +394,20 @@ function Recovery() {
         </div>
 
 
+        {/* Recovery Rate */}
+
         <div className="metric-card">
 
           <div className="metric-top">
-            <p>Recovery Rate</p>
-            <div className="metric-icon">↗</div>
+
+            <p>
+              Recovery Rate
+            </p>
+
+            <div className="metric-icon">
+              ↗
+            </div>
+
           </div>
 
           <h2>
@@ -338,11 +421,20 @@ function Recovery() {
         </div>
 
 
+        {/* Recovery Attempts */}
+
         <div className="metric-card">
 
           <div className="metric-top">
-            <p>Recovery Attempts</p>
-            <div className="metric-icon">⚡</div>
+
+            <p>
+              Recovery Attempts
+            </p>
+
+            <div className="metric-icon">
+              ⚡
+            </div>
+
           </div>
 
           <h2>
@@ -369,13 +461,16 @@ function Recovery() {
           <div className="panel-header">
 
             <div>
+
               <h3>
                 Recovery Decision Summary
               </h3>
 
               <p>
-                How Revora is handling failed payments
+                How Revora is handling
+                failed payments
               </p>
+
             </div>
 
           </div>
@@ -383,9 +478,13 @@ function Recovery() {
 
           <div className="decision-grid">
 
+            {/* Retry */}
+
             <div className="decision-card">
 
-              <span>RETRY</span>
+              <span>
+                RETRY
+              </span>
 
               <strong>
                 {retryCount.toLocaleString()}
@@ -398,9 +497,13 @@ function Recovery() {
             </div>
 
 
+            {/* Recovered */}
+
             <div className="decision-card">
 
-              <span>RECOVERED</span>
+              <span>
+                RECOVERED
+              </span>
 
               <strong>
                 {
@@ -419,9 +522,13 @@ function Recovery() {
             </div>
 
 
+            {/* Stopped */}
+
             <div className="decision-card">
 
-              <span>STOPPED</span>
+              <span>
+                STOPPED
+              </span>
 
               <strong>
                 {stopCount.toLocaleString()}
@@ -445,6 +552,7 @@ function Recovery() {
           <div className="panel-header">
 
             <div>
+
               <h3>
                 Recovery Progress
               </h3>
@@ -452,6 +560,7 @@ function Recovery() {
               <p>
                 Current recovery efficiency
               </p>
+
             </div>
 
           </div>
@@ -497,13 +606,17 @@ function Recovery() {
         <div className="panel-header">
 
           <div>
+
             <h3>
               AI Recovery Queue
             </h3>
 
             <p>
-              Highest-probability recovery opportunities identified by Revora.
+              Highest-probability recovery
+              opportunities identified by
+              Revora.
             </p>
+
           </div>
 
 
@@ -526,7 +639,9 @@ function Recovery() {
                     : "filter-btn"
                 }
                 onClick={() =>
-                  setActionFilter(action)
+                  setActionFilter(
+                    action
+                  )
                 }
               >
                 {action}
@@ -548,7 +663,9 @@ function Recovery() {
             placeholder="Search transaction or customer..."
             value={search}
             onChange={(event) =>
-              setSearch(event.target.value)
+              setSearch(
+                event.target.value
+              )
             }
           />
 
@@ -560,19 +677,22 @@ function Recovery() {
         {notification && (
 
           <div className="recovery-notification">
+
             ✓ {notification}
+
           </div>
 
         )}
 
 
         {/* ============================= */}
-        {/* Queue                         */}
+        {/* QUEUE                         */}
         {/* ============================= */}
 
         <div className="recovery-queue">
 
-          {currentRecoveryTransactions.length > 0 ? (
+          {currentRecoveryTransactions.length >
+          0 ? (
 
             currentRecoveryTransactions.map(
               (transaction) => {
@@ -585,7 +705,8 @@ function Recovery() {
 
                 const score =
                   Number(
-                    transaction.recovery_score || 0
+                    transaction.recovery_score ||
+                      0
                   );
 
                 const actioned =
@@ -615,13 +736,19 @@ function Recovery() {
                       </strong>
 
                       <span className="amount">
+
                         ₹
                         {Number(
-                          transaction.amount || 0
-                        ).toLocaleString("en-IN", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
+                          transaction.amount ||
+                            0
+                        ).toLocaleString(
+                          "en-IN",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+
                       </span>
 
                     </div>
@@ -720,127 +847,200 @@ function Recovery() {
                         RECOMMENDED
                       </span>
 
-                     {actioned ? (
-  <div className="action-result">
+                      {actioned ? (
 
-    <span className="actioned-badge">
-      ✓ {actioned.recovery_status}
-    </span>
+                        <div className="action-result">
 
-    {actioned.recovered_amount > 0 && (
-      <span className="recovered-amount">
-        ₹
-        {Number(
-          actioned.recovered_amount
-        ).toLocaleString("en-IN", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })} recovered
-      </span>
-    )}
+                          <span className="actioned-badge">
+                            ✓{" "}
+                            {
+                              actioned.recovery_status
+                            }
+                          </span>
 
-  </div>
-) : (
+                          {actioned.recovered_amount >
+                            0 && (
+
+                            <span className="recovered-amount">
+
+                              ₹
+                              {Number(
+                                actioned.recovered_amount
+                              ).toLocaleString(
+                                "en-IN",
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                }
+                              )}{" "}
+                              recovered
+
+                            </span>
+
+                          )}
+
+                          {/* Attempts */}
+
+                          {actioned.attempts_before !==
+                            undefined && (
+
+                            <span className="recovery-detail">
+
+                              Attempts:{" "}
+                              {
+                                actioned.attempts_before
+                              }{" "}
+                              →{" "}
+                              {
+                                actioned.attempts_after
+                              }
+
+                            </span>
+
+                          )}
+
+                          {/* Stopping Rule */}
+
+                          {actioned.stopping_rule && (
+
+                            <span className="recovery-detail">
+
+                              🛡️{" "}
+                              {
+                                actioned.stopping_rule
+                              }
+
+                            </span>
+
+                          )}
+
+                        </div>
+
+                      ) : (
 
                         <button
-  type="button"
-  className="execute-action"
-  onClick={() => {
-    console.log("RETRY BUTTON CLICKED", transaction);
-    executeAction(transaction);
-  }}
->
-  {transaction.recommended_action}
-</button>
+                          type="button"
+                          className="execute-action"
+                          onClick={() => {
+                            console.log(
+                              "ACTION BUTTON CLICKED",
+                              transaction
+                            );
+
+                            executeAction(
+                              transaction
+                            );
+                          }}
+                        >
+                          {transaction.recommended_action}
+                        </button>
 
                       )}
 
                     </div>
+
+
                     {/* ============================= */}
-{/* AI DECISION EXPLANATION       */}
-{/* ============================= */}
+                    {/* AI DECISION EXPLANATION       */}
+                    {/* ============================= */}
 
-<div className="ai-decision-panel">
+                    <div className="ai-decision-panel">
 
-  <div className="ai-decision-header">
+                      <div className="ai-decision-header">
 
-    <span className="ai-label">
-      🤖 AI DECISION
-    </span>
+                        <span className="ai-label">
+                          🤖 AI DECISION
+                        </span>
 
-    <span
-      className={`ai-action-badge ${
-        transaction.recommended_action?.toLowerCase() || ""
-      }`}
-    >
-      {transaction.recommended_action}
-    </span>
+                        <span
+                          className={`ai-action-badge ${
+                            transaction.recommended_action?.toLowerCase() ||
+                            ""
+                          }`}
+                        >
+                          {
+                            transaction.recommended_action
+                          }
+                        </span>
 
-  </div>
-
-
-  <div className="ai-reason">
-
-    <span className="small-label">
-      WHY REVORA CHOSE THIS
-    </span>
-
-    <p>
-      {transaction.decision_reason ||
-        "Revora evaluated the transaction and selected the most appropriate recovery action based on its recovery score, risk level, payment history, and failure reason."}
-    </p>
-
-  </div>
+                      </div>
 
 
-  {/* Decision Factors */}
+                      {/* AI Reason */}
 
-  {transaction.decision_factors?.length > 0 && (
+                      <div className="ai-reason">
 
-    <div className="decision-factors">
+                        <span className="small-label">
+                          WHY REVORA CHOSE THIS
+                        </span>
 
-      <span className="small-label">
-        DECISION FACTORS
-      </span>
+                        <p>
+                          {transaction.decision_reason ||
+                            "Revora evaluated the transaction and selected the most appropriate recovery action based on its recovery score, risk level, payment history, and failure reason."}
+                        </p>
 
-      <div className="factor-list">
+                      </div>
 
-        {transaction.decision_factors.map(
-          (factor, index) => (
 
-            <div
-              className="factor-item"
-              key={`${transaction.transaction_id}-factor-${index}`}
-            >
+                      {/* Decision Factors */}
 
-              <span className="factor-name">
-                {factor.factor}
-              </span>
+                      {transaction.decision_factors?.length >
+                        0 && (
 
-              <strong className="factor-value">
-                {factor.value}
-              </strong>
+                        <div className="decision-factors">
 
-              <span
-                className={`factor-impact ${
-                  factor.impact?.toLowerCase() || ""
-                }`}
-              >
-                {factor.impact}
-              </span>
+                          <span className="small-label">
+                            DECISION FACTORS
+                          </span>
 
-            </div>
+                          <div className="factor-list">
 
-          )
-        )}
+                            {transaction.decision_factors.map(
+                              (
+                                factor,
+                                index
+                              ) => (
 
-      </div>
+                                <div
+                                  className="factor-item"
+                                  key={`${transaction.transaction_id}-factor-${index}`}
+                                >
 
-    </div>
+                                  <span className="factor-name">
+                                    {
+                                      factor.factor
+                                    }
+                                  </span>
 
-  )}
+                                  <strong className="factor-value">
+                                    {
+                                      factor.value
+                                    }
+                                  </strong>
 
-</div>
+                                  <span
+                                    className={`factor-impact ${
+                                      factor.impact?.toLowerCase() ||
+                                      ""
+                                    }`}
+                                  >
+                                    {
+                                      factor.impact
+                                    }
+                                  </span>
+
+                                </div>
+
+                              )
+                            )}
+
+                          </div>
+
+                        </div>
+
+                      )}
+
+                    </div>
 
                   </div>
 
@@ -853,11 +1053,13 @@ function Recovery() {
             <div className="empty-recovery">
 
               <h3>
-                No recovery opportunities found
+                No recovery opportunities
+                found
               </h3>
 
               <p>
-                Try changing the filter or search term.
+                Try changing the filter or
+                search term.
               </p>
 
             </div>
@@ -868,14 +1070,16 @@ function Recovery() {
 
 
         {/* ============================= */}
-        {/* Queue Footer + Pagination     */}
+        {/* QUEUE FOOTER + PAGINATION     */}
         {/* ============================= */}
 
-        {recoveryTransactions.length > 0 && (
+        {recoveryTransactions.length >
+          0 && (
 
           <div className="queue-footer">
 
             <div>
+
               Showing{" "}
 
               <strong>
@@ -907,6 +1111,7 @@ function Recovery() {
                   </strong>
                 </>
               )}
+
             </div>
 
 
@@ -918,9 +1123,13 @@ function Recovery() {
 
                 <button
                   className="pagination-btn"
-                  disabled={currentPage === 1}
+                  disabled={
+                    currentPage === 1
+                  }
                   onClick={() =>
-                    goToPage(currentPage - 1)
+                    goToPage(
+                      currentPage - 1
+                    )
                   }
                 >
                   ← Previous
@@ -940,15 +1149,19 @@ function Recovery() {
 
                       let pageNumber;
 
-                      if (totalPages <= 7) {
+                      if (
+                        totalPages <= 7
+                      ) {
 
-                        pageNumber = index + 1;
+                        pageNumber =
+                          index + 1;
 
                       } else if (
                         currentPage <= 4
                       ) {
 
-                        pageNumber = index + 1;
+                        pageNumber =
+                          index + 1;
 
                       } else if (
                         currentPage >=
@@ -972,7 +1185,9 @@ function Recovery() {
                       return (
 
                         <button
-                          key={pageNumber}
+                          key={
+                            pageNumber
+                          }
                           className={
                             currentPage ===
                             pageNumber
@@ -999,7 +1214,8 @@ function Recovery() {
                 <button
                   className="pagination-btn"
                   disabled={
-                    currentPage === totalPages
+                    currentPage ===
+                    totalPages
                   }
                   onClick={() =>
                     goToPage(

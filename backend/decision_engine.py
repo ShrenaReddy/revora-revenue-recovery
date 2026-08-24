@@ -262,6 +262,8 @@ def generate_reason(transaction, score, action):
             f"{customer_reason}. "
             f"Revora recommends escalation instead of "
             f"an automated retry."
+            f"Manual review is required before any "
+            f"further recovery action."
         )
 
     if action == "STOP":

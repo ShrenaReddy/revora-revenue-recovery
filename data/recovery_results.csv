@@ -19,7 +19,7 @@ TX10017,38775.12,FAILED,CARD_EXPIRED,68,MEDIUM,REMIND,MEDIUM recovery potential;
 TX10018,4202.42,FAILED,NETWORK_ERROR,67.2,MEDIUM,RETRY,MEDIUM recovery potential and network error is suitable for retry.,0.7,RECOVERED,4202.42
 TX10019,43578.17,SUCCESS,NONE,53.8,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10020,31109.3,SUCCESS,NONE,38.4,LOW,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
-TX10021,4493.39,FAILED,INSUFFICIENT_FUNDS,74.2,HIGH,RETRY,HIGH recovery potential and insufficient funds is suitable for retry.,0.9,RECOVERED,4493.39
+TX10021,4493.39,FAILED,INSUFFICIENT_FUNDS,74.2,HIGH,RETRY,"HIGH recovery potential because of strong historical payment success rate (98%), two recovery attempts have already been made, and a recoverable insufficient funds failure. the customer is not classified as returning. transaction value is ₹4,493.39. These factors support another payment retry.",0.9,RECOVERED,4493.39
 TX10022,32042.34,SUCCESS,NONE,35.8,LOW,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10023,21683.05,SUCCESS,NONE,55,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10024,38753.94,FAILED,UNKNOWN,37.8,LOW,STOP,Low recovery potential or further recovery attempts are not recommended.,0,STOPPED,0
@@ -54,7 +54,7 @@ TX10052,13611.33,FAILED,CARD_EXPIRED,68.8,MEDIUM,REMIND,MEDIUM recovery potentia
 TX10053,20410.71,SUCCESS,NONE,43.8,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10054,14619.67,SUCCESS,NONE,49.8,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10055,5585.04,SUCCESS,NONE,66.2,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
-TX10056,45493.38,FAILED,UNKNOWN,71.6,HIGH,ESCALATE,Failure reason is uncertain and requires further investigation.,0.9,ESCALATED,0
+TX10056,45493.38,FAILED,UNKNOWN,71.6,HIGH,ESCALATE,"HIGH recovery potential, but the unknown failure requires additional investigation. only one recovery attempt has been made. the customer is a returning customer. Revora recommends escalation instead of an automated retry.Manual review is required before any further recovery action.",0.9,ESCALATED,0
 TX10057,39229.67,SUCCESS,NONE,63.6,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10058,4773.26,SUCCESS,NONE,62.4,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10059,4894.04,SUCCESS,NONE,63.8,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
@@ -121,7 +121,7 @@ TX10119,36922.98,ABANDONED,UNKNOWN,41,MEDIUM,STOP,Low recovery potential or furt
 TX10120,38133.02,SUCCESS,NONE,54,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10121,29583.75,ABANDONED,UNKNOWN,66.6,MEDIUM,STOP,Low recovery potential or further recovery attempts are not recommended.,0,STOPPED,0
 TX10122,34170.44,FAILED,UNKNOWN,48.6,MEDIUM,ESCALATE,Failure reason is uncertain and requires further investigation.,0.65,ESCALATED,0
-TX10123,31032.79,FAILED,INSUFFICIENT_FUNDS,78,HIGH,RETRY,HIGH recovery potential and insufficient funds is suitable for retry.,0.9,RECOVERED,31032.79
+TX10123,31032.79,FAILED,INSUFFICIENT_FUNDS,78.0,HIGH,RETRY,"HIGH recovery potential because of strong historical payment success rate (95%), only one recovery attempt has been made, and a recoverable insufficient funds failure. the customer is a returning customer. transaction value is ₹31,032.79. These factors support another payment retry.",0.9,RECOVERED,31032.79
 TX10124,5089.3,FAILED,NETWORK_ERROR,65.8,MEDIUM,RETRY,MEDIUM recovery potential and network error is suitable for retry.,0.7,RECOVERED,5089.3
 TX10125,16200.11,SUCCESS,NONE,43.6,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10126,19597.59,SUCCESS,NONE,71.8,HIGH,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
@@ -233,7 +233,7 @@ TX10231,44287.04,FAILED,NETWORK_ERROR,69.6,MEDIUM,RETRY,MEDIUM recovery potentia
 TX10232,49662.32,SUCCESS,NONE,59.6,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10233,37665.71,SUCCESS,NONE,56.4,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10234,41314.23,SUCCESS,NONE,78.8,HIGH,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
-TX10235,8145.46,FAILED,UNKNOWN,82.2,HIGH,ESCALATE,Failure reason is uncertain and requires further investigation.,0.9,ESCALATED,0
+TX10235,8145.46,FAILED,UNKNOWN,82.2,HIGH,ESCALATE,"HIGH recovery potential, but the unknown failure requires additional investigation. only one recovery attempt has been made. the customer is a returning customer. Revora recommends escalation instead of an automated retry.Manual review is required before any further recovery action.",0.9,ESCALATED,0
 TX10236,22821.9,SUCCESS,NONE,62.6,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10237,16573.22,SUCCESS,NONE,37.2,LOW,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10238,32873.6,SUCCESS,NONE,48.8,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
@@ -341,7 +341,7 @@ TX10339,2379.64,SUCCESS,NONE,75.6,HIGH,STOP,Payment already succeeded; no recove
 TX10340,7069.62,SUCCESS,NONE,63.8,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10341,29455.72,SUCCESS,NONE,65.8,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10342,14784.28,SUCCESS,NONE,36,LOW,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
-TX10343,16390.29,FAILED,UNKNOWN,77,HIGH,ESCALATE,Failure reason is uncertain and requires further investigation.,0.9,ESCALATED,0
+TX10343,16390.29,FAILED,UNKNOWN,77.0,HIGH,ESCALATE,"HIGH recovery potential, but the unknown failure requires additional investigation. only one recovery attempt has been made. the customer is a returning customer. Revora recommends escalation instead of an automated retry.Manual review is required before any further recovery action.",0.9,ESCALATED,0
 TX10344,41825.12,FAILED,INSUFFICIENT_FUNDS,53.2,MEDIUM,REMIND,MEDIUM recovery potential; customer should be reminded to complete payment.,0.6,RECOVERED,41825.12
 TX10345,48130.57,FAILED,NETWORK_ERROR,69.6,MEDIUM,RETRY,MEDIUM recovery potential and network error is suitable for retry.,0.7,RECOVERED,48130.57
 TX10346,25941.2,FAILED,UNKNOWN,66,MEDIUM,ESCALATE,Failure reason is uncertain and requires further investigation.,0.65,ESCALATED,0
@@ -713,7 +713,7 @@ TX10711,24018.99,SUCCESS,NONE,59.6,MEDIUM,STOP,Payment already succeeded; no rec
 TX10712,19955.09,SUCCESS,NONE,67.2,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10713,28553.49,FAILED,LIMIT_EXCEEDED,53.4,MEDIUM,REMIND,MEDIUM recovery potential; customer should be reminded to complete payment.,0.6,FAILED,0
 TX10714,11987.8,SUCCESS,NONE,55.2,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
-TX10715,11802.93,FAILED,UNKNOWN,78.6,HIGH,ESCALATE,Failure reason is uncertain and requires further investigation.,0.9,ESCALATED,0
+TX10715,11802.93,FAILED,UNKNOWN,78.6,HIGH,ESCALATE,"HIGH recovery potential, but the unknown failure requires additional investigation. only one recovery attempt has been made. the customer is a returning customer. Revora recommends escalation instead of an automated retry.Manual review is required before any further recovery action.",0.9,ESCALATED,0
 TX10716,16470.95,SUCCESS,NONE,50.6,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10717,47636.09,SUCCESS,NONE,58.6,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX10718,32492.65,SUCCESS,NONE,61,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
@@ -1903,7 +1903,7 @@ TX11901,482.41,SUCCESS,NONE,57.2,MEDIUM,STOP,Payment already succeeded; no recov
 TX11902,14606.25,SUCCESS,NONE,75,HIGH,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX11903,3915.04,SUCCESS,NONE,66.4,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX11904,24520.49,SUCCESS,NONE,45.4,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
-TX11905,11768.45,FAILED,NETWORK_ERROR,78.2,HIGH,RETRY,HIGH recovery potential and network error is suitable for retry.,0.95,RECOVERED,11768.45
+TX11905,11768.45,FAILED,NETWORK_ERROR,78.2,HIGH,RETRY,"HIGH recovery potential because of strong historical payment success rate (83%), only one recovery attempt has been made, and a recoverable network error failure. the customer is a returning customer. transaction value is ₹11,768.45. These factors support another payment retry.",0.95,RECOVERED,11768.45
 TX11906,35666.41,FAILED,INSUFFICIENT_FUNDS,52.6,MEDIUM,REMIND,MEDIUM recovery potential; customer should be reminded to complete payment.,0.6,RECOVERED,35666.41
 TX11907,40227.72,SUCCESS,NONE,39.6,LOW,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX11908,40168.32,SUCCESS,NONE,67.2,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
@@ -2619,7 +2619,7 @@ TX12617,44006.37,FAILED,UNKNOWN,69,MEDIUM,ESCALATE,Failure reason is uncertain a
 TX12618,20137.53,SUCCESS,NONE,67.8,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX12619,28202.22,SUCCESS,NONE,59.8,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX12620,43531.07,SUCCESS,NONE,79.6,HIGH,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
-TX12621,4396.31,FAILED,NETWORK_ERROR,70,HIGH,RETRY,HIGH recovery potential and network error is suitable for retry.,0.95,RECOVERED,4396.31
+TX12621,4396.31,FAILED,NETWORK_ERROR,70.0,HIGH,RETRY,"HIGH recovery potential because of strong historical payment success rate (75%), two recovery attempts have already been made, and a recoverable network error failure. the customer is a returning customer. transaction value is ₹4,396.31. These factors support another payment retry.",0.95,RECOVERED,4396.31
 TX12622,24653.19,FAILED,LIMIT_EXCEEDED,72.8,HIGH,REMIND,HIGH recovery potential; customer should be reminded to complete payment.,0.85,RECOVERED,24653.19
 TX12623,20372.28,SUCCESS,NONE,52.2,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX12624,41608.21,SUCCESS,NONE,64.2,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
@@ -9715,7 +9715,7 @@ TX19713,12043.88,SUCCESS,NONE,78.8,HIGH,STOP,Payment already succeeded; no recov
 TX19714,2024.78,SUCCESS,NONE,82.6,HIGH,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX19715,16378.92,FAILED,INSUFFICIENT_FUNDS,55.6,MEDIUM,REMIND,MEDIUM recovery potential; customer should be reminded to complete payment.,0.6,FAILED,0
 TX19716,11968.58,SUCCESS,NONE,76.4,HIGH,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
-TX19717,14417.36,FAILED,NETWORK_ERROR,70.8,HIGH,RETRY,HIGH recovery potential and network error is suitable for retry.,0.95,RECOVERED,14417.36
+TX19717,14417.36,FAILED,NETWORK_ERROR,70.8,HIGH,RETRY,"HIGH recovery potential because of strong historical payment success rate (77%), only one recovery attempt has been made, and a recoverable network error failure. the customer is not classified as returning. transaction value is ₹14,417.36. These factors support another payment retry.",0.95,RECOVERED,14417.36
 TX19718,5555.64,SUCCESS,NONE,48,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX19719,9151,SUCCESS,NONE,58.2,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
 TX19720,45793.22,SUCCESS,NONE,58,MEDIUM,STOP,Payment already succeeded; no recovery action required.,0,STOPPED,0
