@@ -1591,3 +1591,139 @@ td {
   line-height: 1.5;
   font-size: 13px;
 }
+
+/* =========================================
+   COMPLIANCE & AUDIT
+========================================= */
+
+.compliance-page {
+  min-height: 100vh;
+}
+
+.audit-panel {
+  margin-top: 24px;
+}
+
+.audit-count {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.audit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.audit-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 20px;
+  display: grid;
+  grid-template-columns:
+    1.2fr
+    0.8fr
+    0.9fr
+    1fr
+    0.8fr
+    1.2fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.audit-main,
+.audit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.audit-customer {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.audit-status {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.audit-status.recovered {
+  font-weight: 700;
+}
+
+.audit-status.escalated {
+  font-weight: 700;
+}
+
+.audit-status.stopped {
+  font-weight: 700;
+}
+
+.audit-details {
+  grid-column: 1 / -1;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 18px;
+  margin-top: 4px;
+}
+
+.audit-detail-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, 1fr);
+  gap: 20px;
+}
+
+.audit-detail-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.audit-reason,
+.audit-rule {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.audit-reason p,
+.audit-rule p {
+  margin: 8px 0 0;
+  line-height: 1.6;
+  font-size: 13px;
+}
+
+.audit-rule {
+  border-left: 3px solid currentColor;
+}
+
+@media (max-width: 1000px) {
+
+  .audit-card {
+    grid-template-columns:
+      repeat(3, 1fr);
+  }
+
+  .audit-detail-grid {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+
+}
+
+@media (max-width: 700px) {
+
+  .audit-card {
+    grid-template-columns:
+      1fr;
+  }
+
+  .audit-detail-grid {
+    grid-template-columns:
+      1fr;
+  }
+
+}

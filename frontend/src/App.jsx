@@ -3,6 +3,7 @@ import "./App.css";
 import Transactions from "./Transactions";
 import Recovery from "./Recovery";
 import Analytics from "./Analytics";
+import Compliance from "./pages/Compliance";
 
 function App() {
   const [metrics, setMetrics] = useState(null);
@@ -166,6 +167,14 @@ function App() {
           >
             Analytics
           </a>
+          <a
+  className={`nav-item ${
+    activePage === "compliance" ? "active" : ""
+  }`}
+  onClick={() => setActivePage("compliance")}
+>
+  Compliance
+</a>
 
         </nav>
 
@@ -195,8 +204,9 @@ function App() {
   <Recovery />
 ) : activePage === "analytics" ? (
     <Analytics />
-      ) : (
-
+) : activePage === "compliance" ? (
+  <Compliance />
+) : (
           /* ============================= */
           /* OVERVIEW PAGE                 */
           /* ============================= */

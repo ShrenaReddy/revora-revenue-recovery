@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 
 function Recovery() {
   const [transactions, setTransactions] = useState([]);
-const [auditRecords, setAuditRecords] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [actionFilter, setActionFilter] = useState("ALL");
@@ -16,11 +15,16 @@ const [auditRecords, setAuditRecords] = useState([]);
   const opportunitiesPerPage = 100;
 
   /*
-   * Load recovery data
+   * ============================================================
+   * LOAD RECOVERY DATA
+   * ============================================================
    */
+
   useEffect(() => {
     async function loadRecoveryData() {
       try {
+        setLoading(true);
+
         const response = await fetch(
           "http://127.0.0.1:5000/api/results"
         );
@@ -31,12 +35,20 @@ const [auditRecords, setAuditRecords] = useState([]);
 
         const data = await response.json();
 
-        setTransactions(data.results || []);
+        console.log("Recovery API response:", data);
+
+        setTransactions(
+          Array.isArray(data.results)
+            ? data.results
+            : []
+        );
       } catch (error) {
         console.error(
           "Failed to load recovery data:",
           error
         );
+
+        setTransactions([]);
       } finally {
         setLoading(false);
       }
@@ -46,16 +58,48 @@ const [auditRecords, setAuditRecords] = useState([]);
   }, []);
 
   /*
-   * Recovery opportunities
-   *
-   * Show transactions where Revora
-   * has recommended a recovery action.
+   * ============================================================
+   * SAFE HELPERS
+   * ============================================================
    */
+
+  // Safely convert decision_factors into an array.
+  const getDecisionFactors = (transaction) => {
+    const factors = transaction?.decision_factors;
+
+    if (Array.isArray(factors)) {
+      return factors;
+    }
+
+    // Sometimes the backend may return JSON as a string.
+    if (typeof factors === "string") {
+      try {
+        const parsed = JSON.parse(factors);
+
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+
+        return [];
+      } catch {
+        return [];
+      }
+    }
+
+    return [];
+  };
+
+  /*
+   * ============================================================
+   * RECOVERY OPPORTUNITIES
+   * ============================================================
+   */
+
   const recoveryTransactions = useMemo(() => {
     return transactions
       .filter((transaction) => {
         const action =
-          transaction.recommended_action;
+          transaction?.recommended_action;
 
         return (
           action === "RETRY" ||
@@ -64,15 +108,28 @@ const [auditRecords, setAuditRecords] = useState([]);
         );
       })
       .filter((transaction) => {
-        const searchText = search.toLowerCase();
+        const searchText =
+          search.trim().toLowerCase();
+
+        if (!searchText) {
+          return (
+            actionFilter === "ALL" ||
+            transaction.recommended_action ===
+              actionFilter
+          );
+        }
+
+        const transactionId = String(
+          transaction?.transaction_id || ""
+        ).toLowerCase();
+
+        const customerId = String(
+          transaction?.customer_id || ""
+        ).toLowerCase();
 
         const matchesSearch =
-          transaction.transaction_id
-            ?.toLowerCase()
-            .includes(searchText) ||
-          transaction.customer_id
-            ?.toLowerCase()
-            .includes(searchText);
+          transactionId.includes(searchText) ||
+          customerId.includes(searchText);
 
         const matchesAction =
           actionFilter === "ALL" ||
@@ -87,50 +144,64 @@ const [auditRecords, setAuditRecords] = useState([]);
       .sort(
         (a, b) =>
           Number(
-            b.recovery_probability || 0
+            b?.recovery_probability || 0
           ) -
           Number(
-            a.recovery_probability || 0
+            a?.recovery_probability || 0
           )
       );
   }, [
     transactions,
     actionFilter,
-    search
+    search,
   ]);
 
   /*
-   * Reset pagination whenever
-   * search or filter changes.
+   * ============================================================
+   * RESET PAGE WHEN FILTER CHANGES
+   * ============================================================
    */
+
   useEffect(() => {
     setCurrentPage(1);
   }, [search, actionFilter]);
 
   /*
-   * Overall recovery counts
+   * ============================================================
+   * DECISION COUNTS
+   * ============================================================
    */
+
   const retryCount = transactions.filter(
     (transaction) =>
-      transaction.recommended_action ===
+      transaction?.recommended_action ===
       "RETRY"
   ).length;
 
   const stopCount = transactions.filter(
     (transaction) =>
-      transaction.recommended_action ===
+      transaction?.recommended_action ===
       "STOP"
   ).length;
 
   const escalateCount = transactions.filter(
     (transaction) =>
-      transaction.recommended_action ===
+      transaction?.recommended_action ===
       "ESCALATE"
   ).length;
 
+  const recoveredCount = transactions.filter(
+    (transaction) =>
+      transaction?.recovery_status ===
+      "RECOVERED"
+  ).length;
+
   /*
-   * Pagination calculations
+   * ============================================================
+   * PAGINATION
+   * ============================================================
    */
+
   const totalPages = Math.ceil(
     recoveryTransactions.length /
       opportunitiesPerPage
@@ -150,9 +221,6 @@ const [auditRecords, setAuditRecords] = useState([]);
       endIndex
     );
 
-  /*
-   * Page navigation
-   */
   const goToPage = (page) => {
     if (
       page >= 1 &&
@@ -163,8 +231,11 @@ const [auditRecords, setAuditRecords] = useState([]);
   };
 
   /*
-   * Execute a recovery action
+   * ============================================================
+   * EXECUTE RECOVERY ACTION
+   * ============================================================
    */
+
   const executeAction = async (
     transaction
   ) => {
@@ -194,6 +265,11 @@ const [auditRecords, setAuditRecords] = useState([]);
       const result =
         await response.json();
 
+      console.log(
+        "Recovery execution result:",
+        result
+      );
+
       setActionedTransactions(
         (previous) => ({
           ...previous,
@@ -203,13 +279,39 @@ const [auditRecords, setAuditRecords] = useState([]);
       );
 
       setNotification(
-        `${result.recovery_status} — ${transaction.transaction_id}`
+        `${result.recovery_status || "ACTION COMPLETED"} — ${transaction.transaction_id}`
       );
+
+      // Refresh transaction data so
+      // dashboard values stay synchronized.
+      try {
+        const refreshResponse =
+          await fetch(
+            "http://127.0.0.1:5000/api/results"
+          );
+
+        if (refreshResponse.ok) {
+          const refreshedData =
+            await refreshResponse.json();
+
+          setTransactions(
+            Array.isArray(
+              refreshedData.results
+            )
+              ? refreshedData.results
+              : []
+          );
+        }
+      } catch (refreshError) {
+        console.error(
+          "Failed to refresh recovery data:",
+          refreshError
+        );
+      }
 
       setTimeout(() => {
         setNotification("");
       }, 4000);
-
     } catch (error) {
       console.error(
         "Recovery execution failed:",
@@ -223,30 +325,76 @@ const [auditRecords, setAuditRecords] = useState([]);
   };
 
   /*
-   * Recovery rate
+   * ============================================================
+   * RECOVERY RATE
+   * ============================================================
    */
+
+  const failedTransactions =
+    transactions.filter(
+      (transaction) =>
+        transaction?.status === "FAILED"
+    ).length;
+
   const recoveryRate =
-    transactions.length > 0
-      ? (
-          transactions.filter(
-            (transaction) =>
-              transaction.recovery_status ===
-              "RECOVERED"
-          ).length /
-          Math.max(
-            transactions.filter(
-              (transaction) =>
-                transaction.status ===
-                "FAILED"
-            ).length,
-            1
-          )
-        ) * 100
+    failedTransactions > 0
+      ? (recoveredCount /
+          failedTransactions) *
+        100
       : 0;
 
   /*
-   * Loading
+   * ============================================================
+   * RECOVERABLE REVENUE
+   * ============================================================
    */
+
+  const recoverableRevenue =
+    transactions
+      .filter(
+        (transaction) =>
+          transaction?.recommended_action !==
+          "STOP"
+      )
+      .reduce(
+        (sum, transaction) =>
+          sum +
+          Number(
+            transaction?.amount || 0
+          ),
+        0
+      );
+
+  /*
+   * ============================================================
+   * RECOVERED REVENUE
+   * ============================================================
+   */
+
+  const recoveredRevenue =
+    transactions
+      .filter(
+        (transaction) =>
+          transaction?.recovery_status ===
+          "RECOVERED"
+      )
+      .reduce(
+        (sum, transaction) =>
+          sum +
+          Number(
+            transaction?.recovered_amount ||
+              transaction?.amount ||
+              0
+          ),
+        0
+      );
+
+  /*
+   * ============================================================
+   * LOADING
+   * ============================================================
+   */
+
   if (loading) {
     return (
       <div className="loading">
@@ -259,12 +407,18 @@ const [auditRecords, setAuditRecords] = useState([]);
     );
   }
 
+  /*
+   * ============================================================
+   * PAGE
+   * ============================================================
+   */
+
   return (
     <div className="recovery-page">
 
-      {/* ============================= */}
-      {/* HEADER                        */}
-      {/* ============================= */}
+      {/* ================================================== */}
+      {/* HEADER                                             */}
+      {/* ================================================== */}
 
       <header className="topbar">
 
@@ -297,9 +451,9 @@ const [auditRecords, setAuditRecords] = useState([]);
       </header>
 
 
-      {/* ============================= */}
-      {/* KPI CARDS                     */}
-      {/* ============================= */}
+      {/* ================================================== */}
+      {/* KPI CARDS                                          */}
+      {/* ================================================== */}
 
       <section className="metrics-grid">
 
@@ -322,21 +476,8 @@ const [auditRecords, setAuditRecords] = useState([]);
           <h2>
             ₹
             {(
-              transactions
-                .filter(
-                  (transaction) =>
-                    transaction.recommended_action !==
-                    "STOP"
-                )
-                .reduce(
-                  (sum, transaction) =>
-                    sum +
-                    Number(
-                      transaction.amount ||
-                        0
-                    ),
-                  0
-                ) / 10000000
+              recoverableRevenue /
+              10000000
             ).toFixed(2)}
             Cr
           </h2>
@@ -368,21 +509,8 @@ const [auditRecords, setAuditRecords] = useState([]);
           <h2>
             ₹
             {(
-              transactions
-                .filter(
-                  (transaction) =>
-                    transaction.recovery_status ===
-                    "RECOVERED"
-                )
-                .reduce(
-                  (sum, transaction) =>
-                    sum +
-                    Number(
-                      transaction.amount ||
-                        0
-                    ),
-                  0
-                ) / 10000000
+              recoveredRevenue /
+              10000000
             ).toFixed(2)}
             Cr
           </h2>
@@ -450,9 +578,9 @@ const [auditRecords, setAuditRecords] = useState([]);
       </section>
 
 
-      {/* ============================= */}
-      {/* DECISION SUMMARY              */}
-      {/* ============================= */}
+      {/* ================================================== */}
+      {/* DECISION SUMMARY                                   */}
+      {/* ================================================== */}
 
       <section className="content-grid">
 
@@ -506,13 +634,7 @@ const [auditRecords, setAuditRecords] = useState([]);
               </span>
 
               <strong>
-                {
-                  transactions.filter(
-                    (transaction) =>
-                      transaction.recovery_status ===
-                      "RECOVERED"
-                  ).length.toLocaleString()
-                }
+                {recoveredCount.toLocaleString()}
               </strong>
 
               <small>
@@ -536,6 +658,25 @@ const [auditRecords, setAuditRecords] = useState([]);
 
               <small>
                 No further attempts
+              </small>
+
+            </div>
+
+
+            {/* Escalated */}
+
+            <div className="decision-card">
+
+              <span>
+                ESCALATED
+              </span>
+
+              <strong>
+                {escalateCount.toLocaleString()}
+              </strong>
+
+              <small>
+                Manual review required
               </small>
 
             </div>
@@ -597,9 +738,9 @@ const [auditRecords, setAuditRecords] = useState([]);
       </section>
 
 
-      {/* ============================= */}
-      {/* AI RECOVERY QUEUE             */}
-      {/* ============================= */}
+      {/* ================================================== */}
+      {/* AI RECOVERY QUEUE                                  */}
+      {/* ================================================== */}
 
       <section className="panel recovery-queue-panel">
 
@@ -632,6 +773,7 @@ const [auditRecords, setAuditRecords] = useState([]);
             ].map((action) => (
 
               <button
+                type="button"
                 key={action}
                 className={
                   actionFilter === action
@@ -639,9 +781,7 @@ const [auditRecords, setAuditRecords] = useState([]);
                     : "filter-btn"
                 }
                 onClick={() =>
-                  setActionFilter(
-                    action
-                  )
+                  setActionFilter(action)
                 }
               >
                 {action}
@@ -685,9 +825,9 @@ const [auditRecords, setAuditRecords] = useState([]);
         )}
 
 
-        {/* ============================= */}
-        {/* QUEUE                         */}
-        {/* ============================= */}
+        {/* ================================================== */}
+        {/* QUEUE                                             */}
+        {/* ================================================== */}
 
         <div className="recovery-queue">
 
@@ -699,31 +839,40 @@ const [auditRecords, setAuditRecords] = useState([]);
 
                 const probability =
                   Number(
-                    transaction.recovery_probability ||
+                    transaction?.recovery_probability ||
                       0
                   ) * 100;
 
                 const score =
                   Number(
-                    transaction.recovery_score ||
+                    transaction?.recovery_score ||
                       0
                   );
 
                 const actioned =
                   actionedTransactions[
-                    transaction.transaction_id
+                    transaction?.transaction_id
                   ];
+
+                // IMPORTANT:
+                // Always make sure this is an array.
+                const decisionFactors =
+                  getDecisionFactors(
+                    transaction
+                  );
 
                 return (
 
                   <div
                     className="recovery-card"
                     key={
-                      transaction.transaction_id
+                      transaction?.transaction_id
                     }
                   >
 
-                    {/* Transaction */}
+                    {/* ====================================== */}
+                    {/* TRANSACTION                            */}
+                    {/* ====================================== */}
 
                     <div className="recovery-card-section">
 
@@ -732,14 +881,15 @@ const [auditRecords, setAuditRecords] = useState([]);
                       </span>
 
                       <strong>
-                        {transaction.transaction_id}
+                        {transaction?.transaction_id ||
+                          "UNKNOWN"}
                       </strong>
 
                       <span className="amount">
 
                         ₹
                         {Number(
-                          transaction.amount ||
+                          transaction?.amount ||
                             0
                         ).toLocaleString(
                           "en-IN",
@@ -754,7 +904,9 @@ const [auditRecords, setAuditRecords] = useState([]);
                     </div>
 
 
-                    {/* Failure */}
+                    {/* ====================================== */}
+                    {/* FAILURE                                */}
+                    {/* ====================================== */}
 
                     <div className="recovery-card-section">
 
@@ -763,8 +915,10 @@ const [auditRecords, setAuditRecords] = useState([]);
                       </span>
 
                       <strong>
-                        {transaction.failure_reason
-                          ? transaction.failure_reason.replaceAll(
+                        {transaction?.failure_reason
+                          ? String(
+                              transaction.failure_reason
+                            ).replaceAll(
                               "_",
                               " "
                             )
@@ -774,7 +928,9 @@ const [auditRecords, setAuditRecords] = useState([]);
                     </div>
 
 
-                    {/* Score */}
+                    {/* ====================================== */}
+                    {/* SCORE                                  */}
+                    {/* ====================================== */}
 
                     <div className="recovery-card-section">
 
@@ -789,7 +945,9 @@ const [auditRecords, setAuditRecords] = useState([]);
                     </div>
 
 
-                    {/* Probability */}
+                    {/* ====================================== */}
+                    {/* PROBABILITY                            */}
+                    {/* ====================================== */}
 
                     <div className="recovery-card-section probability-card">
 
@@ -818,7 +976,9 @@ const [auditRecords, setAuditRecords] = useState([]);
                     </div>
 
 
-                    {/* Risk */}
+                    {/* ====================================== */}
+                    {/* RISK                                   */}
+                    {/* ====================================== */}
 
                     <div className="recovery-card-section">
 
@@ -828,18 +988,22 @@ const [auditRecords, setAuditRecords] = useState([]);
 
                       <span
                         className={`risk ${
-                          transaction.risk_level?.toLowerCase() ||
-                          ""
+                          String(
+                            transaction?.risk_level ||
+                              ""
+                          ).toLowerCase()
                         }`}
                       >
-                        {transaction.risk_level ||
+                        {transaction?.risk_level ||
                           "UNKNOWN"}
                       </span>
 
                     </div>
 
 
-                    {/* Action */}
+                    {/* ====================================== */}
+                    {/* ACTION                                  */}
+                    {/* ====================================== */}
 
                     <div className="recovery-card-section">
 
@@ -852,14 +1016,19 @@ const [auditRecords, setAuditRecords] = useState([]);
                         <div className="action-result">
 
                           <span className="actioned-badge">
+
                             ✓{" "}
-                            {
-                              actioned.recovery_status
-                            }
+
+                            {actioned?.recovery_status ||
+                              "COMPLETED"}
+
                           </span>
 
-                          {actioned.recovered_amount >
-                            0 && (
+
+                          {Number(
+                            actioned?.recovered_amount ||
+                              0
+                          ) > 0 && (
 
                             <span className="recovered-amount">
 
@@ -879,18 +1048,20 @@ const [auditRecords, setAuditRecords] = useState([]);
 
                           )}
 
-                          {/* Attempts */}
 
-                          {actioned.attempts_before !==
+                          {actioned?.attempts_before !==
                             undefined && (
 
                             <span className="recovery-detail">
 
                               Attempts:{" "}
+
                               {
                                 actioned.attempts_before
-                              }{" "}
-                              →{" "}
+                              }
+
+                              {" → "}
+
                               {
                                 actioned.attempts_after
                               }
@@ -899,13 +1070,13 @@ const [auditRecords, setAuditRecords] = useState([]);
 
                           )}
 
-                          {/* Stopping Rule */}
 
-                          {actioned.stopping_rule && (
+                          {actioned?.stopping_rule && (
 
                             <span className="recovery-detail">
 
                               🛡️{" "}
+
                               {
                                 actioned.stopping_rule
                               }
@@ -921,18 +1092,14 @@ const [auditRecords, setAuditRecords] = useState([]);
                         <button
                           type="button"
                           className="execute-action"
-                          onClick={() => {
-                            console.log(
-                              "ACTION BUTTON CLICKED",
-                              transaction
-                            );
-
+                          onClick={() =>
                             executeAction(
                               transaction
-                            );
-                          }}
+                            )
+                          }
                         >
-                          {transaction.recommended_action}
+                          {transaction?.recommended_action ||
+                            "STOP"}
                         </button>
 
                       )}
@@ -940,9 +1107,9 @@ const [auditRecords, setAuditRecords] = useState([]);
                     </div>
 
 
-                    {/* ============================= */}
-                    {/* AI DECISION EXPLANATION       */}
-                    {/* ============================= */}
+                    {/* ====================================== */}
+                    {/* AI DECISION EXPLANATION                 */}
+                    {/* ====================================== */}
 
                     <div className="ai-decision-panel">
 
@@ -954,13 +1121,14 @@ const [auditRecords, setAuditRecords] = useState([]);
 
                         <span
                           className={`ai-action-badge ${
-                            transaction.recommended_action?.toLowerCase() ||
-                            ""
+                            String(
+                              transaction?.recommended_action ||
+                                ""
+                            ).toLowerCase()
                           }`}
                         >
-                          {
-                            transaction.recommended_action
-                          }
+                          {transaction?.recommended_action ||
+                            "UNKNOWN"}
                         </span>
 
                       </div>
@@ -975,17 +1143,19 @@ const [auditRecords, setAuditRecords] = useState([]);
                         </span>
 
                         <p>
-                          {transaction.decision_reason ||
+                          {transaction?.decision_reason ||
+                            transaction?.decision_rationale ||
                             "Revora evaluated the transaction and selected the most appropriate recovery action based on its recovery score, risk level, payment history, and failure reason."}
                         </p>
 
                       </div>
 
 
-                      {/* Decision Factors */}
+                      {/* ====================================== */}
+                      {/* DECISION FACTORS                        */}
+                      {/* ====================================== */}
 
-                      {transaction.decision_factors?.length >
-                        0 && (
+                      {decisionFactors.length > 0 && (
 
                         <div className="decision-factors">
 
@@ -995,7 +1165,7 @@ const [auditRecords, setAuditRecords] = useState([]);
 
                           <div className="factor-list">
 
-                            {transaction.decision_factors.map(
+                            {decisionFactors.map(
                               (
                                 factor,
                                 index
@@ -1003,30 +1173,30 @@ const [auditRecords, setAuditRecords] = useState([]);
 
                                 <div
                                   className="factor-item"
-                                  key={`${transaction.transaction_id}-factor-${index}`}
+                                  key={`${transaction?.transaction_id}-factor-${index}`}
                                 >
 
                                   <span className="factor-name">
-                                    {
-                                      factor.factor
-                                    }
+                                    {factor?.factor ||
+                                      factor?.name ||
+                                      "Factor"}
                                   </span>
 
                                   <strong className="factor-value">
-                                    {
-                                      factor.value
-                                    }
+                                    {factor?.value ??
+                                      "—"}
                                   </strong>
 
                                   <span
                                     className={`factor-impact ${
-                                      factor.impact?.toLowerCase() ||
-                                      ""
+                                      String(
+                                        factor?.impact ||
+                                          ""
+                                      ).toLowerCase()
                                     }`}
                                   >
-                                    {
-                                      factor.impact
-                                    }
+                                    {factor?.impact ||
+                                      "—"}
                                   </span>
 
                                 </div>
@@ -1069,9 +1239,9 @@ const [auditRecords, setAuditRecords] = useState([]);
         </div>
 
 
-        {/* ============================= */}
-        {/* QUEUE FOOTER + PAGINATION     */}
-        {/* ============================= */}
+        {/* ================================================== */}
+        {/* QUEUE FOOTER + PAGINATION                         */}
+        {/* ================================================== */}
 
         {recoveryTransactions.length >
           0 && (
@@ -1106,6 +1276,7 @@ const [auditRecords, setAuditRecords] = useState([]);
               {actionFilter !== "ALL" && (
                 <>
                   {" • "}
+
                   <strong>
                     {actionFilter}
                   </strong>
@@ -1122,6 +1293,7 @@ const [auditRecords, setAuditRecords] = useState([]);
               <div className="pagination">
 
                 <button
+                  type="button"
                   className="pagination-btn"
                   disabled={
                     currentPage === 1
@@ -1185,6 +1357,7 @@ const [auditRecords, setAuditRecords] = useState([]);
                       return (
 
                         <button
+                          type="button"
                           key={
                             pageNumber
                           }
@@ -1212,6 +1385,7 @@ const [auditRecords, setAuditRecords] = useState([]);
 
 
                 <button
+                  type="button"
                   className="pagination-btn"
                   disabled={
                     currentPage ===
