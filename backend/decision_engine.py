@@ -4,6 +4,13 @@
 
 
 # ============================================================
+# CONFIGURATION
+# ============================================================
+
+MAX_RECOVERY_ATTEMPTS = 3
+
+
+# ============================================================
 # CALCULATE RECOVERY SCORE
 # ============================================================
 
@@ -147,6 +154,18 @@ def get_risk_level(score):
 # ============================================================
 
 def determine_action(transaction, score):
+    """
+    Determine the safest recovery action.
+
+    Possible actions:
+    - RETRY
+    - REMIND
+    - ESCALATE
+    - STOP
+
+    ESCALATE means the transaction requires human review
+    before additional recovery action.
+    """
 
     status = str(
         transaction.get(
@@ -171,23 +190,47 @@ def determine_action(transaction, score):
         )
     )
 
+    amount = float(
+        transaction.get(
+            "amount",
+            0
+        )
+    )
+
     # --------------------------------------------------------
-    # Successful payment
+    # 1. Successful payment
     # --------------------------------------------------------
 
     if status == "SUCCESS":
         return "STOP"
 
     # --------------------------------------------------------
-    # Safety rule:
-    # Do not continue automated recovery after 3 attempts
+    # 2. Maximum automated attempts reached
+    #
+    # Never continue automated recovery after the limit.
+    # Send the transaction for manual review.
     # --------------------------------------------------------
 
-    if attempts >= 3:
+    if attempts >= MAX_RECOVERY_ATTEMPTS:
         return "ESCALATE"
 
     # --------------------------------------------------------
-    # Abandoned payment
+    # 3. Unknown failure
+    #
+    # Unknown failures should not be blindly retried.
+    # Human review is appropriate when there is meaningful
+    # recovery potential.
+    # --------------------------------------------------------
+
+    if failure == "UNKNOWN":
+
+        if score >= 40:
+            return "ESCALATE"
+
+        return "STOP"
+
+    # --------------------------------------------------------
+    # 4. Abandoned payment
     # --------------------------------------------------------
 
     if status == "ABANDONED":
@@ -195,16 +238,93 @@ def determine_action(transaction, score):
         if risk == "HIGH":
             return "REMIND"
 
+        elif risk == "MEDIUM":
+            return "REMIND"
+
         return "STOP"
 
     # --------------------------------------------------------
-    # Insufficient funds
+    # 5. Insufficient funds
     # --------------------------------------------------------
 
     if failure == "INSUFFICIENT_FUNDS":
 
+        # Very strong customer/payment history:
+        # controlled retry is reasonable.
         if risk == "HIGH":
             return "RETRY"
+
+        # Medium-confidence cases should first receive
+        # a reminder rather than an automatic payment attempt.
+        elif risk == "MEDIUM":
+            return "REMIND"
+
+        return "STOP"
+
+    # --------------------------------------------------------
+    # 6. Network error
+    # --------------------------------------------------------
+
+    if failure == "NETWORK_ERROR":
+
+        if risk == "HIGH":
+            return "RETRY"
+
+        elif risk == "MEDIUM":
+            return "RETRY"
+
+        # Low-confidence network failures can be escalated
+        # when the transaction has meaningful value.
+        if amount >= 20000:
+            return "ESCALATE"
+
+        return "STOP"
+
+    # --------------------------------------------------------
+    # 7. Bank decline
+    #
+    # Bank declines can have external causes and should not
+    # always be repeatedly retried.
+    # --------------------------------------------------------
+
+    if failure == "BANK_DECLINE":
+
+        # High-risk bank declines are sent for manual review.
+        if risk == "HIGH":
+            return "ESCALATE"
+
+        # Medium-risk cases receive a reminder first.
+        elif risk == "MEDIUM":
+            return "REMIND"
+
+        # High-value low-risk transactions deserve review
+        # instead of silently stopping.
+        elif amount >= 50000:
+            return "ESCALATE"
+
+        return "STOP"
+
+    # --------------------------------------------------------
+    # 8. Card expired
+    # --------------------------------------------------------
+
+    if failure == "CARD_EXPIRED":
+
+        # Expired cards should not be automatically retried.
+        # Customer needs to update payment information.
+        if amount >= 50000 and risk in ["HIGH", "MEDIUM"]:
+            return "ESCALATE"
+
+        return "REMIND"
+
+    # --------------------------------------------------------
+    # 9. Limit exceeded
+    # --------------------------------------------------------
+
+    if failure == "LIMIT_EXCEEDED":
+
+        if risk == "HIGH":
+            return "ESCALATE"
 
         elif risk == "MEDIUM":
             return "REMIND"
@@ -212,58 +332,18 @@ def determine_action(transaction, score):
         return "STOP"
 
     # --------------------------------------------------------
-    # Network error
+    # 10. High-value unknown/other failures
+    #
+    # Protect against blindly recovering large-value payments.
     # --------------------------------------------------------
 
-    if failure == "NETWORK_ERROR":
-
-        if risk in ["HIGH", "MEDIUM"]:
-            return "RETRY"
-
-        return "STOP"
-
-    # --------------------------------------------------------
-    # Bank decline
-    # --------------------------------------------------------
-
-    if failure == "BANK_DECLINE":
-
-        if risk in ["HIGH", "MEDIUM"]:
-            return "REMIND"
-
-        return "STOP"
-
-    # --------------------------------------------------------
-    # Card expired
-    # --------------------------------------------------------
-
-    if failure == "CARD_EXPIRED":
-        return "REMIND"
-
-    # --------------------------------------------------------
-    # Limit exceeded
-    # --------------------------------------------------------
-
-    if failure == "LIMIT_EXCEEDED":
-
-        if risk in ["HIGH", "MEDIUM"]:
-            return "REMIND"
-
-        return "STOP"
-
-    # --------------------------------------------------------
-    # Unknown failure
-    # --------------------------------------------------------
-
-    if failure == "UNKNOWN":
+    if amount >= 50000:
 
         if risk in ["HIGH", "MEDIUM"]:
             return "ESCALATE"
 
-        return "STOP"
-
     # --------------------------------------------------------
-    # Default
+    # 11. Default
     # --------------------------------------------------------
 
     return "STOP"
@@ -495,7 +575,7 @@ def generate_reason(
                 f"{history_reason}. "
                 f"{attempt_reason}. "
                 f"The insufficient-funds failure may be recoverable "
-                f"through another payment attempt. "
+                f"through another controlled payment attempt. "
                 f"{customer_reason}. "
                 f"{amount_reason}. "
                 f"Revora recommends a controlled retry."
@@ -534,7 +614,8 @@ def generate_reason(
 
     if action == "ESCALATE":
 
-        if attempts >= 3:
+        # Maximum attempts
+        if attempts >= MAX_RECOVERY_ATTEMPTS:
 
             return (
                 f"{risk} recovery potential, but "
@@ -548,6 +629,81 @@ def generate_reason(
                 f"Revora recommends escalation for manual review."
             )
 
+        # Unknown failure
+        if failure == "UNKNOWN":
+
+            return (
+                f"{risk} recovery potential based on "
+                f"{history_reason}. "
+                f"The failure reason is unknown and cannot be "
+                f"safely handled by an automated recovery rule. "
+                f"{attempt_reason}. "
+                f"{customer_reason}. "
+                f"{amount_reason}. "
+                f"Revora escalates the transaction for manual "
+                f"investigation before further recovery."
+            )
+
+        # Bank decline
+        if failure == "BANK_DECLINE":
+
+            return (
+                f"{risk} recovery potential with "
+                f"{history_reason}. "
+                f"The bank-decline failure may require "
+                f"additional investigation before another "
+                f"payment attempt. "
+                f"{attempt_reason}. "
+                f"{customer_reason}. "
+                f"{amount_reason}. "
+                f"Revora recommends manual review instead of "
+                f"blindly retrying the payment."
+            )
+
+        # Card expired
+        if failure == "CARD_EXPIRED":
+
+            return (
+                f"{risk} recovery potential with "
+                f"{history_reason}. "
+                f"The card has expired and cannot be safely "
+                f"retried without updated payment information. "
+                f"{customer_reason}. "
+                f"{amount_reason}. "
+                f"Revora escalates this high-value case for "
+                f"manual review."
+            )
+
+        # Limit exceeded
+        if failure == "LIMIT_EXCEEDED":
+
+            return (
+                f"{risk} recovery potential with "
+                f"{history_reason}. "
+                f"The payment limit has been exceeded, so "
+                f"another automated attempt may be inappropriate. "
+                f"{attempt_reason}. "
+                f"{customer_reason}. "
+                f"{amount_reason}. "
+                f"Revora recommends manual review before "
+                f"further recovery."
+            )
+
+        # High-value transaction
+        if amount >= 50000:
+
+            return (
+                f"{risk} recovery potential for a high-value "
+                f"transaction of ₹{amount:,.2f}. "
+                f"The {failure_text} failure requires additional "
+                f"review before automated recovery continues. "
+                f"{attempt_reason}. "
+                f"{customer_reason}. "
+                f"Revora recommends escalation to protect "
+                f"against inappropriate automated recovery."
+            )
+
+        # General escalation
         return (
             f"{risk} recovery potential, but the "
             f"{failure_text} failure requires additional "
@@ -618,7 +774,9 @@ def generate_decision_factors(
 
     factors = []
 
+    # --------------------------------------------------------
     # Recovery score
+    # --------------------------------------------------------
 
     factors.append({
         "factor": "Recovery Score",
@@ -626,7 +784,9 @@ def generate_decision_factors(
         "impact": risk
     })
 
+    # --------------------------------------------------------
     # Historical success rate
+    # --------------------------------------------------------
 
     factors.append({
         "factor": "Previous Success Rate",
@@ -640,7 +800,9 @@ def generate_decision_factors(
         )
     })
 
+    # --------------------------------------------------------
     # Previous attempts
+    # --------------------------------------------------------
 
     factors.append({
         "factor": "Previous Attempts",
@@ -652,7 +814,9 @@ def generate_decision_factors(
         )
     })
 
+    # --------------------------------------------------------
     # Customer type
+    # --------------------------------------------------------
 
     factors.append({
         "factor": "Customer Type",
@@ -664,14 +828,19 @@ def generate_decision_factors(
         )
     })
 
+    # --------------------------------------------------------
     # Transaction amount
+    # --------------------------------------------------------
 
     if amount < 5000:
         amount_impact = "HIGH PRIORITY"
+
     elif amount < 20000:
         amount_impact = "MEDIUM PRIORITY"
+
     elif amount < 50000:
         amount_impact = "LOWER PRIORITY"
+
     else:
         amount_impact = "CONSERVATIVE"
 
@@ -681,7 +850,9 @@ def generate_decision_factors(
         "impact": amount_impact
     })
 
+    # --------------------------------------------------------
     # Failure reason
+    # --------------------------------------------------------
 
     factors.append({
         "factor": "Failure Reason",
@@ -692,13 +863,51 @@ def generate_decision_factors(
         "impact": "DECISION INPUT"
     })
 
+    # --------------------------------------------------------
+    # Attempt safety
+    # --------------------------------------------------------
+
+    if attempts >= MAX_RECOVERY_ATTEMPTS:
+
+        factors.append({
+            "factor": "Safety Limit",
+            "value": (
+                f"{MAX_RECOVERY_ATTEMPTS} attempts reached"
+            ),
+            "impact": "ESCALATE"
+        })
+
+    elif attempts == MAX_RECOVERY_ATTEMPTS - 1:
+
+        factors.append({
+            "factor": "Attempt Safety",
+            "value": (
+                f"{attempts} attempts used"
+            ),
+            "impact": "CAUTION"
+        })
+
+    # --------------------------------------------------------
     # Recommended action
+    # --------------------------------------------------------
 
     factors.append({
         "factor": "Recommended Action",
         "value": action,
         "impact": "RULE ENGINE DECISION"
     })
+
+    # --------------------------------------------------------
+    # Manual review factor
+    # --------------------------------------------------------
+
+    if action == "ESCALATE":
+
+        factors.append({
+            "factor": "Manual Review",
+            "value": "Required",
+            "impact": "ESCALATION"
+        })
 
     return factors
 
@@ -709,18 +918,34 @@ def generate_decision_factors(
 
 def analyze_transaction(transaction):
 
+    # --------------------------------------------------------
+    # Calculate score
+    # --------------------------------------------------------
+
     score = calculate_recovery_score(
         transaction
     )
+
+    # --------------------------------------------------------
+    # Determine risk
+    # --------------------------------------------------------
 
     risk = get_risk_level(
         score
     )
 
+    # --------------------------------------------------------
+    # Determine action
+    # --------------------------------------------------------
+
     action = determine_action(
         transaction,
         score
     )
+
+    # --------------------------------------------------------
+    # Generate explanation
+    # --------------------------------------------------------
 
     reason = generate_reason(
         transaction,
@@ -728,11 +953,19 @@ def analyze_transaction(transaction):
         action
     )
 
+    # --------------------------------------------------------
+    # Generate decision factors
+    # --------------------------------------------------------
+
     decision_factors = generate_decision_factors(
         transaction,
         score,
         action
     )
+
+    # --------------------------------------------------------
+    # Return complete AI decision
+    # --------------------------------------------------------
 
     return {
 
